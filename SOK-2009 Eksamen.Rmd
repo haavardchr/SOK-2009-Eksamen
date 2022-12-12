@@ -1,0 +1,511 @@
+---
+title: "SOK-2009 Eksamen"
+author: "Kandidatnummer 96"
+output: pdf_document
+---
+
+# Oppgave 1
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+require(NHANES) || {install.packages("NHANES") ; library(NHANES)}
+nhanes <- NHANES
+nhanes <- janitor::clean_names(nhanes)
+names(nhanes)
+```
+
+## 1a
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+
+nhanes <- nhanes %>% 
+  filter(age >= 25)
+
+unique(nhanes$race1)
+unique(nhanes$education)
+```
+
+Målenivået for *race1* er nominalnivå og brukes for å kategorisere observasjoner, ikke rangere. Variablene fungerer som kategorier så rekkefølgen på verdiene er irrelevant. Det er ingen nullverdi.
+
+Målenivået for *education* er ordinalnivå og kan rangeres på en skala i forhold til hverandre. De forskjellige nivåene har derimot ingen betydning. I dette tilfellet er det fem nivåer med utdanning registrert, ingen av de er en bestemt størrelse større enn noen andre. Det er derimot et klart rangering der den minste mengden utdanning registrert er 8. klasse, etterfulgt av 9. til 11. klasse, videregående, noe høyere utdanning og til slutt gjennomført høyere utdanning.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+nhanes <- nhanes[!(is.na(nhanes$education)), ]
+```
+
+## 1b
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library("viridis")
+
+p <- ggplot(nhanes, aes(x = race1, fill = education)) +
+  geom_bar(width=.5, position = "dodge") +
+  scale_fill_viridis(discrete = TRUE) +
+  scale_y_continuous() +
+  labs(x = "Etnisitet",
+       y = "Antall",
+       title = "Figur 1: Fordeling av utdanningsnivå mellom etnisiteter",
+       legend.title = "") +
+  theme(legend.key.height= unit(.3, 'cm'),
+        legend.key.width= unit(.2, 'cm'),
+        legend.title = element_text(size=5),
+        legend.text = element_text(size=4))
+
+p + labs(fill = "Utdanning")
+```
+
+Fra figuren kan en se at det er en veldig stor andel av observasjonene som er i gruppen *White*. Dette gjør at *white* har størst antall observasjoner for alle utdanningsnivåer. De fire andre kategoriene er mer lik hverandre i antall.
+
+Gruppen *black* har flest med Some College. Gruppen *hispanic* har omtrent samme antall observasjoner per utdanning. *Mexican* har flest med 8. klasse utdanning, og antallet faller for hvert nivå ekstra med utdanning. *White* har flest College Grad, og antallet øker for hver økning i utdanningsnivå. *Other* har også flest College Grad.
+
+Bare fra grafen kan det virke som de fleste med høy utdanning (Some College og College Grad) er av etnisiteten *white* eller *oter*.
+
+## 1c
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+
+race1edu <- nhanes %>% 
+  dplyr::select(race1, education)
+
+Etni_utd_tabell <- table(race1edu$race1, race1edu$education)
+
+kable(Etni_utd_tabell)
+```
+
+## 1d
+
+For å analysere om det er sammenheng mellom utdanningsnivå og etnisitet benyttes en kjei-kvadrat test. En kjei-kvadrat test vil både gi en p-verdi og forventet observasjoner. Deretter kan en se på differansen mellom faktiske observasjoner og forventet.
+
+$H_0$: Det er ingen sammenheng mellom utdanningsnivå og etnisitet.
+
+$H_1$: Det er sammenheng mellom utdanningsnivå og etnisitet, utdanning påvirker etnisitet eller etnisitet påvirker utdanning på en eller annen måte.
+
+## 1e
+
+Det er satt et signifikansnivå *(a)* på 1%, det vil si at en p-verdi lavere enn 0,01 gjør at $H_0$ forkastes og $H_1$ er gjeldende.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+chisq <- chisq.test(Etni_utd_tabell)
+
+chisq
+```
+
+Kji-kvadrattesten gjennomføres. Den gir en p-verdi lavere enn signifikansnivået, og $H_0$ forkastes. Det betyr at det er et signifikant sammenheng mellom utdanning og etnisitet.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+observed <- chisq$observed
+kable(observed)
+```
+
+Fra den originale tabellen kan en observere at *White* utgjør størst andel i alle utdanningsnivåer, utenom *8th Grane* som er dominert av *Mexican*. De andre gruppene har omtrent like mange observasjoner i hvert utdanningsnivå.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+expected <- chisq$expected
+kable(expected)
+```
+
+Den forventede tabellen viser hvordan fordelingen forventes å være.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+kable(observed - expected)
+```
+
+Den siste tabellen viser differansen mellom den observerte tabellen og den forventede tabellen. Her kan en se at det er *White* ser ut til å påvirke resultatet mest. Den største differansen er fra *White* og *College Grad*, og for alle utdanningsnivåer er det *White* som står for den største differansen fra forventet tabell, utenom *High School* der *Other* påvirker mest og *Some College* der *Mexican* såvidt påvirker mer enn *White*. Alt i alt er store differanser på noen av observasjonene fra den forventede til den faktiske tabellen.
+
+# Oppgave 2
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+rm(list = ls())
+library(NHANES)
+nhanes <- NHANES
+nhanes <- janitor::clean_names(nhanes)
+names(nhanes)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+nhanes <- nhanes %>% 
+  filter(age >= 20)
+
+nhanes <- nhanes[!(is.na(nhanes$height)), ]
+nhanes <- nhanes[!(is.na(nhanes$weight)), ]
+nhanes <- nhanes[!(is.na(nhanes$gender)), ]
+```
+
+## 2a
+
+Målenivået for *gender* er nominalnivå. Det er dikotome variabler, med bare to alternativer. Det brukes for å kategorisere, ikke rangere.
+
+Målenivået for *height* er forholdstallnivå. Det eksisterer et nullpunkt og verdiene kan rangeres. Det er mulig å si noe om avstanden mellom hver verdi. Det er også enkelt å konvertere enheter. En person som er 180 cm høy er også 1,8 m eller 0,0018 km.
+
+Målenivået for *weight* er også forholdstall. Samme gjelder her, det eksisterer et nullpunkt og verdiene kan enkelt rangeres. Hver verdi har en objektiv avstand mellom hverandre. Samme som med høyde så kan enheter lett konverteres. En person som veier 80 kg veier også 80000eg eller 176,4 lb.
+
+## 2b
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p <- ggplot(nhanes, aes(x = weight, fill = gender)) +
+  geom_area(stat = "bin", bins = 250,
+            colour = "black", size = 0.1) +
+  scale_y_continuous() +
+  labs(x = "Vekt (kg)",
+       y = "Antall",
+       title = "Figur 2: Forskjell i vekt mellom kjønn") +
+  theme(legend.position = "none")
+
+labs <- c("Female", "Male")
+names(labs) <- c("female", "male")
+
+p + facet_wrap(~gender,
+               labeller = labeller(gender = labs)) +
+  theme(
+   strip.background = element_rect(
+     color="grey50", fill="linen", size=0.1, linetype="solid"
+     )
+   )
+```
+
+Blant begge kjønn er de fleste observasjonene i vekt mellom 50 kg og 100 kg. Veldig få av begge kjønn veier mindre enn 50 kg. Det er flere menn som veier mer enn 100 kg.
+
+Grafene har samme struktur rundt de samme verdiene, men det er så klart små forskjeller. Veldig få kvinner veier mer enn 150 kg, mens et større antall menn veier over 150 kg.
+
+## 2c
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p2 <- ggplot(nhanes, aes(x = weight, y = height, col = gender)) +
+  geom_point() +
+  scale_y_continuous() +
+  labs(x = "Vekt (kg)",
+       y = "Høyde (cm)",
+       title = "Figur 3: Forskjell i vekt og høyde mellom kjønn") +
+  theme(legend.position = "none") +
+  geom_smooth(aes(group = gender), method = lm, colour = "black", size = 0.5, se = FALSE)
+
+p2 + facet_wrap(~gender,
+                labeller = labeller(gender = labs)) +
+  theme(
+   strip.background = element_rect(
+     color="grey50", fill="linen", size=0.1, linetype="solid"
+     )
+   )
+```
+
+Fra figurene kan en se at det fremdeles er flest observasjoner i mellom 50 kg og 100 kg, men i dette tilfellet når høyde er lagt inn kan en observere at observasjonene av menn er noe høyere enn kvinner. Trendlinjen til menn er brattere enn kvinner, noe som tyder på at ved høyere vekt øker også høyden for menn mer.
+
+## 2d
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(plotrix) # henter plotrix for å kunne bruke std.error funksjonen for å regne ut standard error 
+
+tabell <- nhanes %>% 
+  group_by(gender) %>%
+  summarise(me_height = mean(height), 
+            me_weight = mean(weight),
+            st.dev_height = sd(height),
+            st.dev_weight = sd(weight),
+            st.err_height = std.error(height),
+            st.err_weight = std.error(weight),
+            antall = n()
+  )
+
+kable(tabell)
+```
+
+## 2e
+
+### i
+
+$H_0$: det er ingen sammenheng mellom gjennomsnittsvekt og kjønn $H_1$: det er sammenheng mellom gjennomsnittsvekt og kjønn. De to variablene påvirker hverandre på en eller annen måte.
+
+### ii
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(infer)
+
+justonetest <- nhanes %>%
+  specify(weight ~ gender)%>%
+  hypothesize( null = "independence" ) %>% 
+  generate(reps = 10000, type = "permute")%>% 
+  calculate( stat= "diff in means", order=c("female", "male"))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+mean_differance <- nhanes %>% 
+  group_by(gender) %>%
+  summarise(weight = mean(weight)) %>%
+  summarise(diff(weight)) %>%
+  pull()
+
+ggplot(justonetest, aes(x=stat))+
+  geom_histogram(bins = 100, colour = "black") + 
+  geom_vline(xintercept = mean_differance, color="red") +
+  labs(x = "Differanse mellom generert og faktisk gjennomsnitt",
+       y = "Antall",
+       title = "Figur 4: Forskjell i gjennomsnittsvekt mellom gruppene")
+```
+
+Dette er en permutasjonstest via "just one test" fremgangsmåten. Dette kalles også for en todimensjonal eller bivariat analyse. Det brukes for å se på hvordan to variabler forholder seg til hverandre. Fra grafen kan en se at differansen i generert gjennomsnitt er mye lavere enn det faktiske gjennomsnittet.
+
+### iii
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p_value <- get_p_value(justonetest, obs_stat = mean_differance, direction = "two.sided")
+p_value_out <- p_value %>% pull(p_value)
+kable(p_value)
+```
+
+P-verdien fra testen er `r p_value_out`. Den er tilnærmet null men i virkeligheten er den veldig lav og avrundet. Den egentlige verdien er regnet ut fra 3/ antall reps, i dette tilfellet er det 3/10000, som gir et veldig lavt tall.
+
+Siden p-verdien er mindre enn signifikansnivået $(a)$ på 1% eller 0,01 betyr det at $H_0$ forkastes og alternativhypotesen gjelder. Det er forskjell i gjennomsnittsvekt mellom menn og kvinner.
+
+## 2f
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(broom)
+
+reg_nhanesF <- lm(weight ~ gender, data = nhanes)
+
+lm(weight ~ gender, data = nhanes) %>% 
+  tidy() %>% 
+  kable()
+```
+
+*(Intercept)* er gjennomsnittsvekten til kvinner med en verdi på 75. *gendermale* har en gjennomsnittsvekt som er 13 større. Dette er statistisk signifikant. Det er også en veldig lav *R-squared* verdi på 0,104, noe som tyder på at denne modellen ikke er svært representativ.
+
+## 2g
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+reg_nhanesG <- lm(weight ~ gender + height, data = nhanes)
+
+lm(weight ~ gender + height, data = nhanes) %>% 
+  tidy() %>% 
+  kable()
+```
+
+Regresjonsmodellen viser at det å bruke høyde som forklarende variabel ikke gir veldig tydelige resultater. Her er *(Intercept)* gjennomsnittlig vekt for kvinner med en høyde på 0, som gir -76. Det samme gjelder for *gendermale*, her er gjennomsnittlig vekt for en mann med høyde på 0 lik -76.3 + 0.83 = -75.47. Dette er ikke statistisk signifikant.
+
+Til slutt er det også en variabel for *height* som indikerer at for hver ekstra enhet med høyde øker vekten med 0.93. Dette er statistisk signifikant og viser at vekt og høyde har et sammenheng, noe som gir mening i og med at høyde og vekt ofte har en korrelasjon, men vanligvis påvirker høyden vekta og ikke motsatt.
+
+Det er også en større *R-squared* på 0,21, enn i $2f$ noe som tyder på at etterhvert som det blir lagt til flere forklarende variabler så blir modellen mer og mer representativ for den uavhengige variabelen.
+
+## 2h
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+reg_nhanesH <- lm(weight ~ gender + height + gender * height, data = nhanes)
+
+lm(weight ~ gender + height + gender * height, data = nhanes) %>% 
+  tidy() %>% 
+  kable()
+```
+
+## 2i
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(statisticalModeling)
+
+MSEf <- evaluate_model(reg_nhanesF, data = nhanes) %>% 
+  mutate(squared_error = (weight - model_output)^2) %>%
+  summarise(mean(squared_error)) %>%
+  pull()
+
+MSEg <- evaluate_model(reg_nhanesG, data = nhanes) %>% 
+  mutate(squared_error = (weight - model_output)^2) %>%
+  summarise(mean(squared_error)) %>%
+  pull()
+
+MSEh <- evaluate_model(reg_nhanesH, data = nhanes) %>% 
+  mutate(squared_error = (weight - model_output)^2) %>%
+  summarise(mean(squared_error)) %>%
+  pull()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ntrials <- cv_pred_error(reg_nhanesF, reg_nhanesG, reg_nhanesH, ntrials = 20)
+
+ggplot(ntrials, aes(x= model, y = mse))+
+  geom_boxplot() + 
+  labs(x = "Model",
+       y = "Mean squared error",
+       title = "Figur 5: MSE per regresjonsmodell") +
+  theme(legend.position = "none")
+  
+pairwise.t.test(ntrials$mse, ntrials$model) %>% 
+  tidy()
+```
+
+Fra de tre modellene og de tre testene på *mean squared error* er det modellen i $2h$, med en MSE på `r round(MSEh, 2)` som er best til å predikere vekten til en person. Den har litt lavere MSE enn $2g$ med `r round(MSEg, 2)` og mye lavere MSE enn $2f$ med `r round(MSEf, 2)`. Fra t-testen kan en også observere at det er signifikant p-verdi mellom alle tre modellene, noe som bekrefter at det er model $2h$ som er best til å predikere vekt.
+
+## 2j
+
+Det er forskjell i vekt mellom kvinner og menn. Fra de tre lineære regresjonsmodellene kan en observere at det er en signifikant forskjell mellom vekt og kjønn. Den første modellen ser kun på vekt og kjønn og det er registrert ulike verdier for kvinner og menn. Når høyde blir lagt til er det ikke signifikant p-verdi for *gendermale*, men det er det i $2h$ modellen. Siden denne har lavest MSE og kjønn har signifikant p-verdi kan en konkludere at det er forskjell i vekt mellom kvinner og menn.
+
+## 2k
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+female170 <- data.frame(gender="female", height=c(170))
+male170 <- data.frame(gender="male", height=c(170))
+
+femaleG <- predict(reg_nhanesG, newdata = female170)
+maleG <- predict(reg_nhanesG, newdata = male170)
+
+femaleH <- predict(reg_nhanesH, newdata = female170)
+maleH <- predict(reg_nhanesH, newdata = male170)
+
+```
+
+Predikert vekt fra modellen i $2g$ er `r round(femaleG, 2)` kg for kvinner og `r round(maleG, 2)` kg for menn. Predikert vekt fra modellen i $2h$ er `r round(femaleH, 2)` kg for kvinner og `r round(maleH, 2)` kg for menn.
+
+# Oppgave 3
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+rm(list=ls())
+require(gapminder) || {install.packages("gapminder") ; library(gapminder)}
+gapminder <- gapminder
+gapminder <- janitor::clean_names(gapminder)
+names(gapminder)
+unique(gapminder$continent)
+
+gapminder <- gapminder %>% 
+  filter(year == 2007)
+```
+
+## 3a
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+gapminder1 <- gapminder %>%
+  group_by(continent) %>% 
+  dplyr::select(continent, life_exp, pop, gdp_percap) %>% 
+  summarise_at(vars("life_exp","pop","gdp_percap"), mean)
+
+kable(gapminder1)
+```
+
+Fra tabellen kan en se at *Afrika* er kontinentet med gjennomsnittlig lavest forventet levealder og gdp per kapita. *Oceania* har både høyest forventet levealder og høyest gdp per kapita og lavest befolkning. Asia har størst gjennomsnittlig befolkning.
+
+## 3b
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+gapminder1 <- gapminder %>% 
+  rename(Kontinent = continent)
+
+p <- ggplot(gapminder1, aes(x= gdp_percap, y = life_exp)) +
+  geom_point(aes(colour = Kontinent, size = pop)) +
+  scale_y_continuous() +
+  labs(x = "Gdp per kapita",
+       y = "Forventet levealder",
+       title = "Figur 6: Gdp per kapita og forventet levealder per land") +
+  theme(legend.key.height= unit(.5, 'cm'),
+        legend.key.width= unit(.3, 'cm'),
+        legend.title = element_text(size=7),
+        legend.text = element_text(size=5))
+  
+p + guides(size = FALSE)
+```
+
+## 3c
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+p <- ggplot(gapminder1, aes(x= log(gdp_percap), y = log(life_exp))) +
+  geom_point(aes(colour = Kontinent, size = pop)) +
+  scale_y_continuous() +
+  labs(x = "Gdp per kapita",
+       y = "Forventet levealder",
+       title = "Figur 7: Gdp per kapita og levealder per land") +
+  theme(legend.key.height= unit(.5, 'cm'),
+        legend.key.width= unit(.3, 'cm'),
+        legend.title = element_text(size=7),
+        legend.text = element_text(size=5))
+  
+
+p + guides(size = FALSE) 
+rm(gapminder1)
+```
+
+## 3d
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+reg_gapminder <- lm(log(life_exp) ~ log(gdp_percap) + continent + pop, data = gapminder)
+
+lm(log(life_exp) ~ log(gdp_percap) + continent + pop, data = gapminder) %>% 
+  tidy() %>% 
+  kable()
+```
+
+I den lineære regresjonsmodellen er det verdien for log av forventet levealder som er verdien for *(Intercept)*, det er denne de isolerte endringene måles mot. *Estimate*-kolonnen viser verdien av de isolerte endringene, målt opp mot *(Intercept)*. *Pr(\>\|t\|)*-kolonnen er p-verdiene for de isolerte endringene.
+
+Her er det to hypoteser: 
+  - $H_0$: det er ingen sammenheng mellom forventet levealder og de valgte variablene.
+  - $H_1$: det er sammenheng mellom forventet levealder og de valgte variablene. Det er også et signifikansnivå *(a)* på 1% eller 0,01.
+
+*log(gdp_percap)* viser at gdp per kapita fører til en økning i forventet levealder, og at det har en p-verdi lavere enn signifikansnivået på 1%. Det betyr at $H_0$ hypotesen forkastes, og at det er et statistisk sammenheng mellom forventet levealder og økt gdp per kapita.
+
+*continentAmericas*, *continentAsia* og *continentEurope* har alle signifikante p-verdier. Det betyr at forventet levealder økes av de variablene, i ulike størrelse. Her forkastes også $H_0$ hypotesen, og det er et statistisk sammenheng mellom forventet levealder og kontinent.
+
+*continentOceania* er har en p-verdi \>1% eller \>0.01. Det betyr at $H_0$ beholdes, og at det ikke er statistisk sammenheng mellom variablene. Grunnen til at Oceania ikke er statistisk signifikant kan komme av at det kun er to observasjoner fra dette kontinentet, Australia og New Zealand. Antallet observasjoner er for få, det er ikke nok observasjoner til å kunne med sikkerhet si at Oceania øker forventet levealder, eller om det er andre faktorer som spiller inn.
+
+Den siste variabelen, *pop*, har ingen statistisk sammenheng med levealder, $H_0$ beholdes. Dette kan komme av at den totale mengden mennesker i et kontinent ikke nødvendigvis påvirker hvor lenge individer gjennomsnittlig lever.
+
+## 3e
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(car)
+
+kable(linearHypothesis(reg_gapminder, "continentAmericas=continentAsia"))
+```
+
+En linearHypothesis test mellom *Americas* og *Asia* gir en p-verdi \>1%. Dette betyr at $H_0$ beholdes, det er ingen statistisk sammenheng mellom forventet levealder i *Americas* og *Asia*. Ikke veldig overaskende at det ikke er noe statistisk sammenheng mellom de to kontinentene, ettersom gjennomsnittlig levealder i et kontintent ikke blir påvirket av gjennomsnittlig levelader i et annet. 
+
+## 3f
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(rpart)
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+
+cleangapminder <- gapminder %>% 
+  rename(Kontinent = continent,
+         "GDP per kapita" = gdp_percap)
+
+rpartleve <- rpart(life_exp ~ Kontinent + `GDP per kapita` + pop, data = cleangapminder, cp=0.01 )
+
+fancyRpartPlot(rpartleve, caption = NULL, digits =-3)
+```
+
+Figuren viser hvordan forventet levealder påvirkes av de uavhengige variablene GDP per kapita, kontinent og populasjon. 
+
+
+Treet tar utgangspunkt i en forventet levealder på `r round(mean(gapminder$life_exp), 2)`, dette er gjennomsnittet av alle landene. Øverst deler treet seg i to, en retning for Afrika og den andre er de resterende kontinentene. Om en følger kontinentet Afrika deles det først etter GDP per kapita mindre eller større enn 5196. Om landet har en GDP per kapita større enn 5196 vil forventet levealder være 65 år. Her er det 10 observasjoner eller 7% av totalen. 
+
+For landene med mindre enn 5196 i GDP per kapita deles det en gang til, denne gangen om GDP per kapita er mer eller mindre enn 873. Om GDP per kapita er mer enn 873 er forventet levealder 54 år, det er 28 observasjoner eller omtrent 20% av totalen. Den siste alternativet er land med GDP per kapita mindre enn 873, disse landene har en forventet levealder på 49 og det er 14 observasjoner eller 10% av totalen.
+
+For de resterende fire kontinentene så er det tilbake til starten. Forventet levealder blir delt opp etter land med større eller mindre GDP per kapita enn 4495. Om den er mindre blir den delt opp etter om GDP per kapita er mindre enn 2361 er forventet levealder 61, her er det 8 observasjoner eller 6% av totalen. Er GDP per kapita mer enn 2361 men mindre enn 4495 er forventet levealder 70 år, med 14 observasjoner, 10% av totalen.
+
+For de landene med GDP per kapita større enn 4495 deles de igjen i to, de landene som har GDP per kapita mellom 4495 og 23091 er forventet levealder 74, 39 observasjoner eller 27.5% av totalen. De siste observasjonene er land med GDP per kapita over 23091, disse har en forventet levealder på 80, det er 29 observasjoner og 20% av totalen.
+
+# Oppgave 4
+
+## 4a
+
+For å definere hva standardavvik er, må en vite hva stokastisk variabel er. Dette er en variabel av et utfall med tilfeldig hendelse. Flere variabler av utfall med tilfeldig hendelse i lag gjør opp et datasett. Et slikt datasett er nødvendig for definere standardavvik.
+
+I et datasett vil standardavviket være et mål for gjennomsnittlig avstand fra gjennomsnittet. Det vil si at i et datasett med 100 observasjoner og et gjennomsnitt på 50 vil standardavviket være den et mål for den gjennomsnittlige avstanden fra det målte gjennomsnittet på 50.
+
+Standardavvik er et viktig mål for å kunne bekrefte om et datasett er normalfordelt eller ikke. Ofte måler man standardavvik i 3 eller 4 nivåer. I et normalfordelt datasett vil ett standardavvik fra gjennomsnittet inneholde $\approx$ 68,3% av alle observasjonene. $\approx$ 95,5% av observasjonene vil være to standardavvik fra gjennomsnittet. Det betyr at i et normalfordelt datasett vil kun 5% av observasjonene ikke inntreffe innenfor to standardavvik. Tre standardavvik inneholder 99,7%.
+
+## 4b
+
+Standardfeil er et mål på feilmarginen i et estimat med data. Standardfeil gir et estimat på hvor nøyaktig dataene representerer populasjonen som den er hentet fra. Størrelsen på standardfeilen er avgjørende for hvor nøyaktig dataene er. En større standardfeil tyder på at innhentet data ikke gir en god forklaring på hele befolkningen, mens en liten standardfeil viser at dataene representer hele befolkningen bedre. 
+
+## 4c
+
+En hypotesetest er en statistisk prosedyre for å teste teorier om data er korrekt eller ikke. En hypotese baseres på innsamlet data der en forsøker å forklare om dataene kan ha et sammenheng eller ikke.
+
+Fremgangsmåten innebærer det å sette en nullhypotese, $H_0$, og en alternativhypotese, $H_1$. Nullhypotesen er en teori om at innsamlet data ikke har en direkte statistisk sammenheng, mens alternativhypotesen er at det eksisterer ett sammenheng. Et signifikansnivå settes, ofte er dette på 95%. Signifikansnivået er avgjørende for om nullhypotesen eller alternativhypotesen er gjeldende. 
+
+P-verdien måles mot nullhypotesen. P-verdien avgjør om nullhypotesen er forkastes eller ikke. En lav p-verdi indikerer at dataene er lav sannsynlighet for at utfallet er tilfeldig, så nullhypotesen kan forkastes, og alternativshypotesen er gjeldende. P-verdien er tett knyttet sammen med signifikansnivået. Om signifikansnivået er på 95% vil p-verdien være 5% eller 0,05. 
+
+## 4d
+
+Konfidensintervall er et mål for hvor godt et estimat er. Konfidensintervall er ytterpunktene for et intervall, og størrelsen avgjør hvor sikker et estimat er. I konfidensintervaller er det både en øvre og en nedre grense.
+
+Konfidensintervallet kan regnes ut fra gjennomsnittet av et estimat $\pm$	variasjonen i det estimatet. Ofte benyttes et konfidensintervall på 95%, som vil si at i 19 av 20 tilfeller vil estimatet havne mellom den øvre og nedre grensen på konfidensintervallet.
